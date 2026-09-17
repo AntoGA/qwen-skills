@@ -1,0 +1,32 @@
+# === Core ===
+langchain>=0.3.0
+langchain-openai>=0.2.0
+langchain-community>=0.3.0
+langgraph>=0.2.0
+openai>=1.0.0
+
+# === Vector Databases ===
+faiss-cpu>=1.7.4
+chromadb>=0.4.0
+
+# === Embeddings ===
+sentence-transformers>=2.2.0
+
+# === Data ===
+pandas>=2.0.0
+numpy>=1.24.0
+
+# === Utilities ===
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+tqdm>=4.65.0
+httpx>=0.25.0
+
+# === Evaluation ===
+rouge-score>=0.1.2
+nltk>=3.8.0
+
+# === Multi-modal (optional) ===
+# pillow>=10.0.0
+# openai-whisper>=20231117
+# pydub>=0.25.1
