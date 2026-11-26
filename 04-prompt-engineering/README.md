@@ -1,5 +1,8 @@
 # ✍️ Навык 4: Advanced Prompt Engineering
 
+> Статус проверки: Prompt chains проверяются с fake chat model. Structured output валидируется по схеме; optimizer использует эвристику длины/слов, не измерение качества реальных моделей.
+> Установка, offline tests и ограничения — в [корневом README](../README.md).
+
 ## Что это?
 
 **Prompt Engineering** — это искусство создания эффективных промптов для получения желаемых результатов от AI-моделей.

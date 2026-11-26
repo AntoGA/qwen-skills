@@ -12,13 +12,13 @@ Multi-Agent System
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from langgraph.graph import StateGraph, END
 from typing import TypedDict, Annotated
 import operator
 
-load_dotenv()
+
 
 
 class AgentState(TypedDict):
@@ -32,6 +32,7 @@ class AgentState(TypedDict):
 
 def create_researcher():
     """Создание агента-исследователя"""
+    load_dotenv()
     
     prompt = ChatPromptTemplate.from_template("""
     Ты - эксперт-исследователь. Твоя задача - собрать информацию по теме.
@@ -53,6 +54,7 @@ def create_researcher():
 
 def create_analyst():
     """Создание агента-аналитика"""
+    load_dotenv()
     
     prompt = ChatPromptTemplate.from_template("""
     Ты - эксперт-аналитик. Проанализируй собранную информацию.
@@ -80,6 +82,7 @@ def create_analyst():
 
 def create_writer():
     """Создание агента-писателя"""
+    load_dotenv()
     
     prompt = ChatPromptTemplate.from_template("""
     Ты - профессиональный писатель. Создай структурированный отчет.
@@ -211,4 +214,5 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
     main()

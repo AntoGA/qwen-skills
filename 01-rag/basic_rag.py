@@ -13,14 +13,14 @@ Basic RAG Implementation
 
 import os
 from dotenv import load_dotenv
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import TextLoader
 
 # Загрузка переменных окружения
-load_dotenv()
+
 
 # Пример документов для демонстрации
 SAMPLE_DOCUMENTS = [
@@ -60,7 +60,7 @@ SAMPLE_DOCUMENTS = [
 
 def create_documents(sample_docs):
     """Создание объектов Document из словарей."""
-    from langchain.schema import Document
+    from langchain_core.documents import Document
     return [
         Document(page_content=doc["content"], metadata=doc["metadata"])
         for doc in sample_docs
@@ -78,17 +78,19 @@ def split_documents(documents, chunk_size=500, chunk_overlap=50):
     return text_splitter.split_documents(documents)
 
 
-def create_vector_store(chunks, embedding_model="text-embedding-3-small"):
+def create_vector_store(chunks, embedding_model=None, embeddings=None):
     """Создание векторного хранилища из чанков."""
-    embeddings = OpenAIEmbeddings(model=embedding_model)
+    load_dotenv()
+    embeddings = embeddings if embeddings is not None else OpenAIEmbeddings(model=embedding_model or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small"))
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store
 
 
-def create_rag_chain(vector_store, model_name="gpt-4o-mini"):
+def create_rag_chain(vector_store, model_name=None, llm=None):
     """Создание RAG-цепочки."""
-    llm = ChatOpenAI(
-        model=model_name,
+    load_dotenv()
+    llm = llm if llm is not None else ChatOpenAI(
+        model=model_name or os.getenv("DEFAULT_MODEL", "gpt-4o-mini"),
         temperature=0,
         max_tokens=500
     )
@@ -166,4 +168,5 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
     main()

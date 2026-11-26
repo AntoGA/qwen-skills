@@ -16,9 +16,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
 
-client = OpenAI()
+
+def get_client():
+    """Create a provider client only when a live operation is requested."""
+    load_dotenv()
+    return OpenAI()
+
 
 
 def encode_image(image_path: str) -> str:
@@ -47,9 +51,13 @@ def analyze_image(image_path: str, question: str = "What's in this image?") -> s
         str: Ответ модели
     """
     
+    media_types = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif'}
+    media_type = media_types.get(Path(image_path).suffix.lower())
+    if media_type is None:
+        raise ValueError('Unsupported image file extension')
     base64_image = encode_image(image_path)
     
-    response = client.chat.completions.create(
+    response = get_client().chat.completions.create(
         model="gpt-4o",
         messages=[
             {
@@ -59,7 +67,7 @@ def analyze_image(image_path: str, question: str = "What's in this image?") -> s
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
+                            "url": f"data:{media_type};base64,{base64_image}"
                         }
                     }
                 ]
@@ -99,6 +107,7 @@ def answer_visual_question(image_path: str, question: str) -> str:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # Пример использования
     
     # Создадим тестовое изображение (в реальном сценарии используйте свое)

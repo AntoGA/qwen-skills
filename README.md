@@ -1,66 +1,79 @@
-# 🤖 Qwen Skills — 5 ключевых навыков для AI-разработчика
+# Qwen Skills — учебные AI-пайплайны
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+Пять разделов с примерами RAG, инструментальных агентов, мультимодальных API,
+prompt engineering и evaluation. **Статус: учебный PoC.** Offline-тесты проверяют
+код и контракты с подставными моделями; качество реальных моделей не измерено.
 
-Практический проект, демонстрирующий **5 самых востребованных навыков** для работы с AI-моделями (Qwen, GPT, Claude) в 2025–2026 году.
+Название репозитория не означает, что примеры уже проверены на Qwen. Текстовые
+примеры используют OpenAI-compatible Chat Completions через LangChain. Для
+совместимого Qwen endpoint задайте OPENAI_BASE_URL, OPENAI_API_KEY и DEFAULT_MODEL;
+фактическую совместимость проверьте отдельно. Audio/image/moderation примеры
+используют отдельные провайдерские API и не становятся совместимыми с Qwen
+автоматически. Anthropic-интеграция и локальный inference здесь не реализованы.
 
-Каждый навык содержит теорию, рабочий код и примеры использования.
+| Раздел | Содержимое |
+| --- | --- |
+| [01-rag](01-rag/) | FAISS retrieval, RAG с источниками, Cohere reranking |
+| [02-agents](02-agents/) | ReAct, последовательный LangGraph, calculator/read-only SQL |
+| [03-multimodal](03-multimodal/) | Vision, transcription и image API примеры |
+| [04-prompt-engineering](04-prompt-engineering/) | Prompt chains, few-shot, schema-validated JSON, heuristic optimizer |
+| [05-evaluation-safety](05-evaluation-safety/) | Локальные метрики и демонстрационные guardrails |
 
----
+## Установка и offline-проверка
 
-## 📋 Содержание
-
-| # | Навык | Описание | Сложность |
-|---|-------|----------|----------|
-| 1 | 🎯 [RAG](./01-rag-systems/) | Retrieval-Augmented Generation — поиск и генерация по документам | ⭐⭐ |
-| 2 | 🤖 [AI Agents](./02-ai-agents/) | Автономные агенты с инструментами и мульти-агентные системы | ⭐⭐⭐ |
-| 3 | 🎨 [Multi-modal AI](./03-multi-modal/) | Работа с изображениями, аудио и видео | ⭐⭐ |
-| 4 | ✍️ [Prompt Engineering](./04-prompt-engineering/) | Продвинутое проектирование промптов | ⭐ |
-| 5 | 🛡️ [Evaluation & Safety](./05-evaluation-safety/) | Оценка качества и безопасность AI-систем | ⭐⭐⭐ |
-
----
-
-## 🚀 Быстрый старт
+Проверяемая платформа: Linux, Python **3.11/3.12**. SQL resource limits используют
+sqlite3.setlimit из Python 3.11+. Для других ОС нужно проверить наличие FAISS wheels.
 
 ```bash
-# Клонировать репозиторий
-git clone https://github.com/AntoGA/qwen-skills.git
-cd qwen-skills
-
-# Создать виртуальное окружение
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# Установить зависимости
-pip install -r requirements.txt
-
-# Настроить API-ключи
-cp .env.example .env
-# Отредактировать .env — вписать свои ключи
+python -m venv .venv
+source .venv/bin/activate       # PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements-dev.txt
+python -m pip check
+python -m compileall -q 01-rag 02-agents 03-multimodal 04-prompt-engineering 05-evaluation-safety
+python -m pytest -q tests --junitxml=artifacts/tests.xml
 ```
 
-## ⚙️ Требования
+API-ключи для тестов не нужны. В тестах заблокированы исходящие socket connections,
+используются FakeListLLM/FakeListChatModel и локальные deterministic embeddings.
+Проверяется реальный FAISS retrieval, сборка ReAct/LangGraph и передача данных между
+этапами. Это не оценка semantic quality, безопасности модели или live-provider SLA.
 
-- Python 3.9+
-- OpenAI API key (или совместимый endpoint)
-- (Опционально) Anthropic API key
-- (Опционально) Hugging Face token
+Зависимости ограничены совместимой legacy-когортой LangChain **0.3** и LangGraph
+**0.6**. Не обновляйте один пакет до 1.x независимо от остальных. Все разделы
+подключают общий requirements.txt. Это диапазоны версий, не полный lock-файл;
+CI сохраняет pip freeze и JUnit для каждого окружения. Локальный snapshot пакетов
+есть в [отчётах](docs/reports/2026-11-26-audit.md).
 
-## 🛠️ Технологии
+## Live-примеры
 
-- **LangChain** — фреймворк для LLM-приложений
-- **LangGraph** — оркестрация AI-агентов
-- **FAISS / ChromaDB** — векторные базы данных
-- **OpenAI / Anthropic** — LLM-провайдеры
-- **Sentence Transformers** — эмбеддинги
+Только при осознанном запуске: они могут обращаться к платному API.
 
-## 📄 Лицензия
+```bash
+cp .env.example .env
+# Заполните .env локально; не коммитьте ключи.
+python 01-rag/basic_rag.py
+python 02-agents/basic_agent.py
+python 02-agents/multi_agent.py
+```
 
-MIT License — см. [LICENSE](./LICENSE)
+Клиенты создаются при вызове операции, а не при импорте. RAG дополнительно требует
+работающий embeddings endpoint/модель; reranking требует COHERE_API_KEY. Включённый
+ReAct prompt локален, поэтому remote prompt hub не требуется.
 
----
+- Web/news search — **явная заглушка**, не возвращает реальные новости или погоду.
+- Calculator не использует eval: ограниченные AST, размер/глубина, finite results,
+  ограниченная степень. Это арифметический пример, не sandbox для Python-кода.
+- SQL tool — только чтение, файл открывается mode=ro; есть authorizer, лимиты длины,
+  шагов запроса и строк. create_sample_database — отдельная trusted demo-функция.
+  Подключайте инструмент только к отдельной разрешённой БД: чтение тоже раскрывает данные.
+- Multi-agent пример последовательно обрабатывает текст; researcher без retrieval
+  не проверяет факты. Реальная автономность и актуальность не заявляются.
+- Guardrails — эвристики/учебные проверки; regex не доказывает защиту от injection.
+- BLEU использует одинаковую локальную wordpunct tokenization обеих сторон;
+  ROUGE использует локальные Unicode word tokens без стемминга. Это метрики
+  перекрытия текста, а не доказательство смысловой корректности или качества модели.
+- Prompt optimizer использует length/keyword score, а не независимую quality metric.
+- Мультимодальные live API не проверены; доступность указанных model IDs зависит от провайдера.
 
-> 👤 **Автор:** [AntoGA](https://github.com/AntoGA)  
-> 📅 **Дата:** Сентябрь 2026
+[Отчёт об исправлениях и проверках](docs/reports/2026-11-26-audit.md).
+MIT — [LICENSE](LICENSE).

@@ -1,0 +1,32 @@
+name: Offline examples
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pip check
+      - run: python -m compileall -q 01-rag 02-agents 03-multimodal 04-prompt-engineering 05-evaluation-safety
+      - name: Record environment
+        run: |
+          mkdir -p artifacts
+          python -m pip freeze > artifacts/requirements-resolved.txt
+          python --version > artifacts/python-version.txt
+      - name: Offline regression suite
+        run: python -m pytest -q tests --junitxml=artifacts/tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-python-${{ matrix.python }}
+          path: artifacts/
+          if-no-files-found: warn

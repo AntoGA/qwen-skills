@@ -77,7 +77,7 @@ python basic_agent.py
 from basic_agent import create_agent
 
 agent = create_agent()
-result = agent.run("Найди информацию о квантовых компьютерах и объясни, как они работают")
+result = agent.invoke({"input": "Посчитай 2 + 3"})["output"]
 print(result)
 ```
 
@@ -86,9 +86,17 @@ print(result)
 from multi_agent import create_research_team
 
 team = create_research_team()
-report = team.run("Подготовь отчет о трендах AI в 2026 году")
+report = team.invoke({"task": "Черновик обзора AI", "research": "", "analysis": "", "report": "", "messages": []})["report"]
 print(report)
 ```
+
+## Ограничения примеров
+
+WebSearch и News — заглушки, актуальных данных нет. Researcher генерирует текст
+без проверки источников. Calculator принимает только bounded arithmetic AST.
+SQL выполняет только чтение и не создаёт отсутствующий файл БД.
+ReAct использует локальный prompt, внешняя загрузка из Hub не нужна.
+Проверка без ключей: команды в корневом README; live invoke требует ключ провайдера.
 
 ## Инструменты
 
@@ -108,9 +116,10 @@ result = calculate("(15 * 23) + 42")
 
 ### Database
 ```python
-from tools.database import query_database
+from tools.database import create_sample_database, query_database
 
-data = query_database("SELECT * FROM users WHERE age > 25")
+create_sample_database("sample.db")
+data = query_database("SELECT * FROM users WHERE age > 25", "sample.db")
 ```
 
 ## Ресурсы

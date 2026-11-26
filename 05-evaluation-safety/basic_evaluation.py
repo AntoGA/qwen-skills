@@ -11,6 +11,7 @@ Basic AI Evaluation
 """
 
 import os
+import re
 from typing import List, Dict
 from dotenv import load_dotenv
 from rouge_score import rouge_scorer
@@ -19,10 +20,16 @@ from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
 
-load_dotenv()
+
 
 # Загрузка NLTK данных
-nltk.download('punkt', quiet=True)
+# No NLTK corpus downloads: tokenization is local and symmetric.
+
+
+class UnicodeTokenizer:
+    """Local Unicode word tokens; no English-only normalization or corpus downloads."""
+    def tokenize(self, text):
+        return re.findall(r"[^\W_]+", text.casefold())
 
 
 class TextEvaluator:
@@ -31,7 +38,7 @@ class TextEvaluator:
     def __init__(self):
         self.rouge_scorer = rouge_scorer.RougeScorer(
             ['rouge1', 'rouge2', 'rougeL'], 
-            use_stemmer=True
+            use_stemmer=False, tokenizer=UnicodeTokenizer()
         )
         self.smoothie = SmoothingFunction().method1
     
@@ -64,8 +71,8 @@ class TextEvaluator:
         Returns:
             BLEU score (0-1)
         """
-        generated_tokens = nltk.word_tokenize(generated.lower())
-        reference_tokens = [ref.lower().split() for ref in reference]
+        generated_tokens = nltk.tokenize.wordpunct_tokenize(generated.lower())
+        reference_tokens = [nltk.tokenize.wordpunct_tokenize(ref.lower()) for ref in reference]
         
         score = sentence_bleu(
             reference_tokens, 
@@ -85,6 +92,8 @@ class TextEvaluator:
         Returns:
             Dict со средними метриками
         """
+        if not references or len(references) != len(generated):
+            raise ValueError('references/generated must be nonempty and equally sized')
         rouge_scores = {'rouge1': [], 'rouge2': [], 'rougeL': []}
         bleu_scores = []
         
@@ -142,12 +151,18 @@ def calculate_perplexity(log_probs: List[float]) -> float:
     Returns:
         Perplexity score
     """
+    if not log_probs or not np.isfinite(log_probs).all() or any(p > 0 for p in log_probs):
+        raise ValueError('log_probs must be nonempty finite natural log probabilities <= 0')
     avg_log_prob = np.mean(log_probs)
-    perplexity = np.exp(-avg_log_prob)
-    return perplexity
+    with np.errstate(over="ignore"):
+        perplexity = np.exp(-avg_log_prob)
+    if not np.isfinite(perplexity):
+        raise ValueError("perplexity overflows the finite numeric range")
+    return float(perplexity)
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # Пример использования
     print("=" * 60)
     print("AI Evaluation Examples")

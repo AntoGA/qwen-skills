@@ -16,9 +16,13 @@ from dotenv import load_dotenv
 from openai import OpenAI
 import httpx
 
-load_dotenv()
 
-client = OpenAI()
+
+def get_client():
+    """Create a provider client only when a live operation is requested."""
+    load_dotenv()
+    return OpenAI()
+
 
 
 def generate_image(
@@ -40,7 +44,9 @@ def generate_image(
         list: Список URL сгенерированных изображений
     """
     
-    response = client.images.generate(
+    if type(n) is not int or n != 1:
+        raise ValueError("This DALL-E 3 example requires n=1")
+    response = get_client().images.generate(
         model="dall-e-3",
         prompt=prompt,
         size=size,
@@ -61,11 +67,25 @@ def download_image(url: str, save_path: str) -> None:
         save_path: Путь для сохранения
     """
     
-    with httpx.stream("GET", url) as response:
-        with open(save_path, "wb") as f:
-            for chunk in response.iter_bytes():
-                f.write(chunk)
-    
+    from tempfile import NamedTemporaryFile
+    temporary = None
+    try:
+        with httpx.stream("GET", url, timeout=30) as response:
+            response.raise_for_status()
+            with NamedTemporaryFile(dir=Path(save_path).resolve().parent, delete=False) as output:
+                temporary = output.name
+                size = 0
+                for chunk in response.iter_bytes():
+                    size += len(chunk)
+                    if size > 20 * 1024 * 1024:
+                        raise ValueError("Image download exceeds 20 MiB")
+                    output.write(chunk)
+        os.replace(temporary, save_path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            Path(temporary).unlink(missing_ok=True)
+
     print(f"✅ Изображение сохранено: {save_path}")
 
 
@@ -85,7 +105,7 @@ def create_variation(image_path: str, n: int = 1) -> list:
     """
     
     with open(image_path, "rb") as image_file:
-        response = client.images.create_variation(
+        response = get_client().images.create_variation(
             image=image_file,
             n=n,
             size="1024x1024"
@@ -114,7 +134,7 @@ def edit_image(image_path: str, mask_path: str, prompt: str) -> list:
     with open(image_path, "rb") as image_file, \
          open(mask_path, "rb") as mask_file:
         
-        response = client.images.edit(
+        response = get_client().images.edit(
             image=image_file,
             mask=mask_file,
             prompt=prompt,
@@ -138,7 +158,7 @@ def generate_with_style(prompt: str, style: str = "vivid") -> list:
         list: Список URL изображений
     """
     
-    response = client.images.generate(
+    response = get_client().images.generate(
         model="dall-e-3",
         prompt=prompt,
         size="1024x1024",
@@ -151,6 +171,7 @@ def generate_with_style(prompt: str, style: str = "vivid") -> list:
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # Пример использования
     
     print("🎨 Генерация изображений")
