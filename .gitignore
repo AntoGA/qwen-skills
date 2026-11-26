@@ -38,3 +38,9 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+.venv/
+artifacts/
+*.db
+*.sqlite
+.pytest_cache/

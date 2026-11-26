@@ -6,27 +6,28 @@ Advanced RAG with Reranking
 Техники:
 - Query expansion
 - Reranking с cross-encoder
-- Hybrid search (semantic + keyword)
+- Semantic retrieval; keyword hybrid search is not implemented
 """
 
 import os
 from dotenv import load_dotenv
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_cohere import CohereRerank
-from langchain.schema import Document
+from langchain_core.documents import Document
 
-load_dotenv()
+
 
 
 class AdvancedRAG:
     """Продвинутая RAG-система с reranking."""
     
-    def __init__(self, documents, embedding_model="text-embedding-3-small"):
+    def __init__(self, documents, embedding_model=None):
+        load_dotenv()
         self.documents = documents
-        self.embedding_model = embedding_model
+        self.embedding_model = embedding_model or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
         self.vector_store = None
         self.retriever = None
         
@@ -42,15 +43,21 @@ class AdvancedRAG:
         print(f"✓ Создано {len(chunks)} чанков из {len(self.documents)} документов")
         return chunks
     
-    def create_vector_store(self, chunks):
+    def create_vector_store(self, chunks, embeddings=None):
         """Создание векторного хранилища."""
-        embeddings = OpenAIEmbeddings(model=self.embedding_model)
+        load_dotenv()
+        embeddings = embeddings if embeddings is not None else OpenAIEmbeddings(model=self.embedding_model)
         self.vector_store = FAISS.from_documents(chunks, embeddings)
         print("✓ Векторное хранилище создано")
         return self.vector_store
     
     def setup_retriever_with_reranking(self, k=10, rerank_top_n=3):
         """Настройка retriever с reranking."""
+        if self.vector_store is None:
+            raise ValueError("create_vector_store must be called first")
+        if type(k) is not int or type(rerank_top_n) is not int or not 1 <= rerank_top_n <= k:
+            raise ValueError("require 1 <= rerank_top_n <= k")
+        load_dotenv()
         base_retriever = self.vector_store.as_retriever(
             search_type="similarity",
             search_kwargs={"k": k}
@@ -73,7 +80,9 @@ class AdvancedRAG:
     def expand_query(self, query, llm=None):
         """Расширение запроса для улучшения поиска."""
         if llm is None:
-            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+            load_dotenv()
+            llm = ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
+
         
         expansion_prompt = f"""Expand the following query with related terms and concepts 
 to improve search results. Return only the expanded query.
@@ -87,6 +96,8 @@ Expanded query:"""
     
     def retrieve_with_expansion(self, query, use_expansion=True):
         """Поиск с опциональным расширением запроса."""
+        if self.retriever is None:
+            raise ValueError("setup_retriever_with_reranking must be called first")
         search_query = query
         
         if use_expansion:
@@ -99,7 +110,8 @@ Expanded query:"""
     def generate_answer(self, query, context_docs, llm=None):
         """Генерация ответа на основе контекста."""
         if llm is None:
-            llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+            load_dotenv()
+            llm = ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0)
         
         context = "\n\n".join([doc.page_content for doc in context_docs])
         
@@ -199,4 +211,5 @@ def demo_advanced_rag():
 
 
 if __name__ == "__main__":
+    load_dotenv()
     demo_advanced_rag()

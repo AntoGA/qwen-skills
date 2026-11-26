@@ -1,5 +1,2 @@
-langchain>=0.3.0
-langchain-openai>=0.2.0
-langgraph>=0.2.0
-openai>=1.0.0
-python-dotenv>=1.0.0
+# Shared tested dependencies; relative includes are resolved from this file.
+-r ../requirements.txt

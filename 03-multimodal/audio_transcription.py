@@ -15,9 +15,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
 
-client = OpenAI()
+
+def get_client():
+    """Create a provider client only when a live operation is requested."""
+    load_dotenv()
+    return OpenAI()
+
 
 
 def transcribe_audio(audio_path: str, language: str = "ru") -> str:
@@ -33,7 +37,7 @@ def transcribe_audio(audio_path: str, language: str = "ru") -> str:
     """
     
     with open(audio_path, "rb") as audio_file:
-        transcript = client.audio.transcriptions.create(
+        transcript = get_client().audio.transcriptions.create(
             model="whisper-1",
             file=audio_file,
             language=language,
@@ -55,7 +59,7 @@ def translate_audio(audio_path: str) -> str:
     """
     
     with open(audio_path, "rb") as audio_file:
-        translation = client.audio.translations.create(
+        translation = get_client().audio.translations.create(
             model="whisper-1",
             file=audio_file,
             response_format="text"
@@ -79,6 +83,8 @@ def transcribe_long_audio(audio_path: str, chunk_duration: int = 600) -> str:
         Требует установки pydub: pip install pydub
     """
     
+    if type(chunk_duration) is not int or chunk_duration < 1:
+        raise ValueError('chunk_duration must be a positive integer')
     try:
         from pydub import AudioSegment
     except ImportError:
@@ -94,20 +100,14 @@ def transcribe_long_audio(audio_path: str, chunk_duration: int = 600) -> str:
     
     print(f"🎵 Обрабатываем аудио длительностью {duration_ms / 1000:.1f} сек")
     
-    for i in range(0, duration_ms, chunk_ms):
-        chunk = audio[i:i + chunk_ms]
-        
-        # Сохраняем чанк во временный файл
-        temp_path = f"temp_chunk_{i}.wav"
-        chunk.export(temp_path, format="wav")
-        
-        print(f"  📝 Обрабатываем чанк {i // chunk_ms + 1}...")
-        transcript = transcribe_audio(temp_path)
-        transcripts.append(transcript)
-        
-        # Удаляем временный файл
-        os.remove(temp_path)
-    
+    from tempfile import TemporaryDirectory
+    with TemporaryDirectory(prefix="qwen-audio-") as directory:
+        for i in range(0, duration_ms, chunk_ms):
+            chunk = audio[i:i + chunk_ms]
+            temp_path = str(Path(directory) / f"chunk_{i}.wav")
+            chunk.export(temp_path, format="wav")
+            transcripts.append(transcribe_audio(temp_path))
+
     return " ".join(transcripts)
 
 
@@ -123,7 +123,7 @@ def transcribe_with_timestamps(audio_path: str) -> list:
     """
     
     with open(audio_path, "rb") as audio_file:
-        response = client.audio.transcriptions.create(
+        response = get_client().audio.transcriptions.create(
             model="whisper-1",
             file=audio_file,
             response_format="verbose_json",
@@ -133,15 +133,16 @@ def transcribe_with_timestamps(audio_path: str) -> list:
     segments = []
     for segment in response.segments:
         segments.append({
-            "start": segment["start"],
-            "end": segment["end"],
-            "text": segment["text"]
+            "start": segment.start,
+            "end": segment.end,
+            "text": segment.text
         })
     
     return segments
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # Пример использования
     
     test_audio = "test_audio.mp3"

@@ -12,12 +12,15 @@ Chain-of-Thought Prompting
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
-load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+
+def get_llm():
+    load_dotenv()
+    return ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
+
 
 
 def basic_chain_of_thought(problem: str) -> str:
@@ -38,7 +41,7 @@ def basic_chain_of_thought(problem: str) -> str:
 Ответ:"""
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"problem": problem})
 
 
@@ -50,7 +53,7 @@ def zero_shot_cot(problem: str) -> str:
         "{problem}\n\nLet's think step by step."
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"problem": problem})
 
 
@@ -66,7 +69,7 @@ def self_consistency(problem: str, num_paths: int = 3) -> str:
 Предоставьте подробное решение:"""
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     
     # Генерируем несколько решений
     solutions = []
@@ -98,11 +101,12 @@ def tree_of_thought(problem: str) -> str:
 Покажите рассуждения всех экспертов и итоговый ответ:"""
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"problem": problem})
 
 
 if __name__ == "__main__":
+    load_dotenv()
     test_problem = """
     В магазине было 45 яблок. Продали 12 яблок утром и 18 яблок днем.
     Затем привезли еще 30 яблок. Сколько яблок стало в магазине?

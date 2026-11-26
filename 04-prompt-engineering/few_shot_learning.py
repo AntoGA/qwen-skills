@@ -12,14 +12,17 @@ Few-Shot Learning
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
-load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+
+def get_llm():
+    load_dotenv()
+    return ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
+
 
 
 # База примеров
@@ -67,7 +70,7 @@ def static_few_shot(user_input: str) -> str:
         ("human", "{input}"),
     ])
     
-    chain = final_prompt | llm | StrOutputParser()
+    chain = final_prompt | get_llm() | StrOutputParser()
     return chain.invoke({"input": user_input})
 
 
@@ -75,6 +78,7 @@ def dynamic_few_shot(user_input: str, k: int = 2) -> str:
     """
     Dynamic few-shot - выбор наиболее релевантных примеров на основе сходства
     """
+    load_dotenv()
     # Создаем embeddings для примеров
     embeddings = OpenAIEmbeddings()
     
@@ -110,7 +114,7 @@ def dynamic_few_shot(user_input: str, k: int = 2) -> str:
         ("human", "{input}"),
     ])
     
-    chain = final_prompt | llm | StrOutputParser()
+    chain = final_prompt | get_llm() | StrOutputParser()
     return chain.invoke({"input": user_input})
 
 
@@ -134,11 +138,12 @@ def formatted_few_shot(user_input: str) -> str:
 РЕШЕНИЕ:"""
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"examples": formatted_examples, "input": user_input})
 
 
 if __name__ == "__main__":
+    load_dotenv()
     test_input = "Сделай текст более вежливым: 'Дай мне это'"
     
     print("=" * 60)

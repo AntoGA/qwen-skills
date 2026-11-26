@@ -12,18 +12,22 @@ Prompt Optimizer
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 from typing import List, Dict, Tuple
 
-load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+
+def get_llm():
+    load_dotenv()
+    return ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
+
 
 
 class PromptOptimizer:
-    def __init__(self):
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+    def __init__(self, llm=None):
+        load_dotenv()
+        self.llm = llm if llm is not None else ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
         self.history = []
     
     def generate_prompt_variants(self, base_prompt: str, task: str) -> List[str]:
@@ -126,7 +130,7 @@ def ab_test_prompts(prompt_a: str, prompt_b: str, test_cases: List[Dict]) -> Dic
     score_a = optimizer.evaluate_prompt(prompt_a, test_cases)
     score_b = optimizer.evaluate_prompt(prompt_b, test_cases)
     
-    winner = "A" if score_a > score_b else "B"
+    winner = "tie" if score_a == score_b else ("A" if score_a > score_b else "B")
     
     return {
         "prompt_a_score": score_a,
@@ -137,6 +141,7 @@ def ab_test_prompts(prompt_a: str, prompt_b: str, test_cases: List[Dict]) -> Dic
 
 
 if __name__ == "__main__":
+    load_dotenv()
     # Тестовые случаи
     test_cases = [
         {

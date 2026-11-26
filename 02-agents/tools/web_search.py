@@ -1,73 +1,13 @@
-"""
-Web Search Tool
-================
-Инструмент для поиска информации в интернете
-"""
-
-import os
-from typing import Optional
+"""Explicit placeholders. No web/news provider is connected."""
 
 
 def search_web(query: str, num_results: int = 5) -> str:
-    """
-    Поиск информации в интернете
-    
-    Args:
-        query: Поисковый запрос
-        num_results: Количество результатов
-    
-    Returns:
-        str: Результаты поиска
-    """
-    
-    # В реальном приложении здесь был бы вызов API поиска
-    # Например: Google Custom Search, Bing Search API, DuckDuckGo
-    
-    # Для демонстрации возвращаем заглушку
-    return f"""
-    🔍 Результаты поиска для: "{query}"
-    
-    1. Пример результата 1
-       Описание: Это пример результата поиска по запросу "{query}"
-    
-    2. Пример результата 2
-       Описание: Дополнительная информация по теме
-    
-    3. Пример результата 3
-       Описание: Еще один релевантный результат
-    
-    Примечание: Это демонстрационная версия. 
-    Для реальной работы подключите API поиска (Google, Bing, DuckDuckGo).
-    """
+    if not isinstance(query, str) or not query.strip() or type(num_results) is not int or not 1 <= num_results <= 10:
+        return "Ошибка: укажите запрос и num_results от 1 до 10"
+    return "ДЕМО: веб-поиск не подключён. Реальные результаты и актуальные факты недоступны. Запрос: " + query[:500]
 
 
 def search_news(query: str, days: int = 7) -> str:
-    """
-    Поиск новостей
-    
-    Args:
-        query: Поисковый запрос
-        days: За сколько дней искать новости
-    
-    Returns:
-        str: Найденные новости
-    """
-    
-    return f"""
-    📰 Новости по запросу: "{query}" (за последние {days} дней)
-    
-    1. Новость 1 - 2 дня назад
-       Заголовок: Важное событие в мире технологий
-    
-    2. Новость 2 - 5 дней назад
-       Заголовок: Новые исследования в области AI
-    
-    Примечание: Подключите News API для реальных данных.
-    """
-
-
-if __name__ == "__main__":
-    # Тестирование
-    print(search_web("искусственный интеллект 2026"))
-    print("\n" + "="*60 + "\n")
-    print(search_news("AI breakthroughs", days=7))
+    if not isinstance(query, str) or not query.strip() or type(days) is not int or not 1 <= days <= 365:
+        return "Ошибка: укажите запрос и days от 1 до 365"
+    return "ДЕМО: News API не подключён. Реальные новости не получены. Запрос: " + query[:500]

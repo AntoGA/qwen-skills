@@ -12,13 +12,19 @@ Safety Guardrails
 
 import os
 import re
+import time
+from threading import Lock
 from typing import Dict, List, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
 
-client = OpenAI()
+
+def get_client():
+    """Create a provider client only when a live operation is requested."""
+    load_dotenv()
+    return OpenAI()
+
 
 
 class ContentFilter:
@@ -68,7 +74,7 @@ class ContentFilter:
             Dict с результатами модерации
         """
         try:
-            response = client.moderations.create(input=text)
+            response = get_client().moderations.create(input=text)
             result = response.results[0]
             
             return {
@@ -141,7 +147,7 @@ class OutputValidator:
             expected_format: 'json', 'email', 'url', etc.
         """
         if expected_format == 'email':
-            email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+            email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b'
             return bool(re.search(email_pattern, text))
         
         elif expected_format == 'url':
@@ -153,10 +159,10 @@ class OutputValidator:
                 import json
                 json.loads(text)
                 return True
-            except:
+            except (ValueError, TypeError):
                 return False
         
-        return True
+        raise ValueError("Unsupported expected_format")
     
     @staticmethod
     def check_profanity(text: str, profanity_list: List[str] = None) -> Tuple[bool, List[str]]:
@@ -193,32 +199,27 @@ class RateLimiter:
             max_requests: Максимальное количество запросов
             time_window: Временное окно в секундах
         """
+        if type(max_requests) is not int or max_requests < 1 or time_window <= 0:
+            raise ValueError("positive max_requests and time_window required")
+        self._lock = Lock()
         self.max_requests = max_requests
         self.time_window = time_window
         self.requests = []
     
     def can_proceed(self) -> bool:
         """Проверка возможности выполнения запроса"""
-        import time
-        
-        current_time = time.time()
-        
-        # Удаляем старые запросы
-        self.requests = [
-            req_time for req_time in self.requests 
-            if current_time - req_time < self.time_window
-        ]
-        
-        # Проверяем лимит
-        if len(self.requests) >= self.max_requests:
-            return False
-        
-        # Добавляем текущий запрос
-        self.requests.append(current_time)
-        return True
+        with self._lock:
+            current_time = time.monotonic()
+            self.requests = [stamp for stamp in self.requests
+                             if current_time - stamp < self.time_window]
+            if len(self.requests) >= self.max_requests:
+                return False
+            self.requests.append(current_time)
+            return True
 
 
 if __name__ == "__main__":
+    load_dotenv()
     print("=" * 60)
     print("Safety Guardrails Examples")
     print("=" * 60)

@@ -13,12 +13,16 @@ Basic Prompt Engineering Techniques
 import os
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
-from langchain.schema import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from pydantic import BaseModel, Field, ConfigDict
 
-load_dotenv()
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
+
+def get_llm():
+    load_dotenv()
+    return ChatOpenAI(model=os.getenv("DEFAULT_MODEL", "gpt-4o-mini"), temperature=0.7)
+
 
 
 def zero_shot_prompt(question: str) -> str:
@@ -29,7 +33,7 @@ def zero_shot_prompt(question: str) -> str:
         "Ответьте на следующий вопрос четко и кратко:\n\n{question}"
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"question": question})
 
 
@@ -58,7 +62,7 @@ def few_shot_prompt(question: str) -> str:
         ("human", "{input}"),
     ])
     
-    chain = final_prompt | llm | StrOutputParser()
+    chain = final_prompt | get_llm() | StrOutputParser()
     return chain.invoke({"input": question})
 
 
@@ -79,8 +83,16 @@ def role_based_prompt(question: str, role: str = "expert") -> str:
         ("human", "{question}"),
     ])
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     return chain.invoke({"question": question})
+
+
+class StructuredAnswer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    main_concept: str
+    key_points: list[str]
+    confidence: float = Field(ge=0, le=1)
+    sources: list[str]
 
 
 def structured_output_prompt(question: str) -> dict:
@@ -103,14 +115,14 @@ def structured_output_prompt(question: str) -> dict:
 Ответ в формате JSON:"""
     )
     
-    chain = prompt | llm | StrOutputParser()
+    chain = prompt | get_llm() | StrOutputParser()
     result = chain.invoke({"question": question})
     
-    # В реальном приложении здесь был бы парсинг JSON
-    return {"raw_response": result}
+    return StructuredAnswer.model_validate_json(result).model_dump()
 
 
 if __name__ == "__main__":
+    load_dotenv()
     test_question = "Объясните, что такое машинное обучение"
     
     print("=" * 60)
